@@ -100,11 +100,33 @@
       document.getElementById('mainTitle').innerText = savedRegion;
     }
 
-    // PWA Service Worker Kaydı
+    // PWA Service Worker Kaydı — updateViaCache: 'none' ile her zaman güncel SW kontrol edilir
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js')
-        .then(() => console.log('Service Worker Kayıt Başarılı.'))
-        .catch(err => console.log('Service Worker Kayıt Hatası:', err));
+      navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+        .then((reg) => {
+          console.log('Service Worker kayıt başarılı, scope:', reg.scope);
+
+          // Yeni bir SW yüklendiğinde sayfayı otomatik yenile
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'activated') {
+                console.log('Yeni SW aktif, sayfa yenileniyor...');
+                window.location.reload();
+              }
+            });
+          });
+
+          // Her sayfa açılışında SW güncellemesini kontrol et
+          reg.update();
+        })
+        .catch(err => console.log('Service Worker kayıt hatası:', err));
+
+      // SW kontrolü devralındığında (örn. önbellek silinip sayfa açıldığında)
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.log('SW kontrolü değişti, yenileniyor...');
+        window.location.reload();
+      });
     }
   };
 
