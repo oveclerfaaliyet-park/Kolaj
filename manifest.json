@@ -1,0 +1,23 @@
+{
+  "name": "Profesyonel Kolaj Oluşturucu",
+  "short_name": "Kolajv6",
+  "description": "Anlık tarihli ve bölge etiketli profesyonel fotoğraf kolajları oluşturun.",
+  "start_url": "kolaj.html",
+  "display": "standalone",
+  "background_color": "#f0f2f5",
+  "theme_color": "#1a2e3b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+

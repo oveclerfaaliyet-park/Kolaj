@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profesyonel Kolaj Oluşturucu</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1a2e3b">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+    body { background: #f0f2f5; padding: 15px; display: flex; justify-content: center; color: #1a2e3b; }
+    .container { background: #fff; width: 100%; max-width: 600px; border-radius: 25px; padding: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+    
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .settings-btn { background: #fff; border: 1px solid #ddd; padding: 10px; border-radius: 12px; cursor: pointer; transition: 0.3s; }
+    .settings-btn:hover { background: #1a2e3b; color: white; }
+    
+    .upload-area { border: 2px dashed #3498db; border-radius: 15px; padding: 30px; text-align: center; cursor: pointer; background: #f8fbff; margin-bottom: 15px; }
+    .preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px; }
+    .preview-box { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; border: 1px solid #eee; }
+    .preview-box img { width: 100%; height: 100%; object-fit: cover; }
+    .del-btn { position: absolute; top: 2px; right: 2px; background: rgba(231, 76, 60, 0.9); color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 12px; }
+
+    .btn { width: 100%; padding: 14px; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px; font-size: 1rem; transition: 0.2s; }
+    .btn-create { background: #1a2e3b; color: #fff; }
+    .btn-download { background: #3498db; color: #fff; }
+    .btn-whatsapp { background: #25D366; color: #fff; }
+    .btn:disabled { background: #ccc; opacity: 0.6; pointer-events: none; }
+    .btn:active { transform: scale(0.98); }
+
+    #resultArea { margin-top: 20px; display: none; text-align: center; }
+    canvas { width: 100%; height: auto; border-radius: 15px; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+    .modal-content { background: #fff; padding: 25px; border-radius: 20px; width: 100%; max-width: 380px; }
+    .modal label { font-size: 0.85rem; font-weight: bold; color: #555; }
+    .modal input { width: 100%; padding: 12px; margin: 8px 0 18px 0; border: 2px solid #eee; border-radius: 10px; font-size: 1rem; outline: none; }
+    .modal input:focus { border-color: #3498db; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h2 id="mainTitle" style="font-size: 1.4rem;">📸 Kolaj <span style="font-size: 0.8rem; color: #3498db;">v6 PRO</span></h2>
+    <button class="settings-btn" onclick="toggleModal(true)"><i class="fas fa-cog"></i></button>
+  </header>
+
+  <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+    <i class="fas fa-images" style="font-size: 1.8rem; color: #3498db;"></i>
+    <p style="font-weight: 600; margin-top: 8px;">Resimleri Seç</p>
+    <p style="font-size: 0.75rem; color: #7f8c8d;">(2 - 6 Resim Seçebilirsin)</p>
+    <input type="file" id="fileInput" multiple accept="image/*" style="display:none" onchange="handleFiles(this.files)">
+  </div>
+
+  <div class="preview-grid" id="previewGrid"></div>
+
+  <button class="btn btn-create" onclick="generateCollage()"><i class="fas fa-layer-group"></i> Kolajı Oluştur</button>
+  <button class="btn btn-download" id="dlBtn" onclick="downloadCollage()" disabled><i class="fas fa-save"></i> Galeriye Kaydet</button>
+  <button class="btn btn-whatsapp" id="waBtn" onclick="shareWhatsApp()" disabled><i class="fab fa-whatsapp"></i> WhatsApp'a Gönder</button>
+  <button class="btn" style="background:#eee; color:#666;" onclick="location.reload()">Sıfırla</button>
+
+  <div id="resultArea">
+    <canvas id="collageCanvas"></canvas>
+    <p style="font-size: 0.8rem; color: #7f8c8d; margin-top: 8px;">Kolaj hazır! Yukarıdaki butondan kaydedebilirsin.</p>
+  </div>
+</div>
+
+<div class="modal" id="settingsModal">
+  <div class="modal-content">
+    <h3 style="margin-bottom: 15px; text-align: center;">Uygulama Ayarları</h3>
+    
+    <label>Alt Yazı (Bölge İsmi)</label>
+    <input type="text" id="regionInput" placeholder="Örn: DİKMEN BÖLGESİ">
+
+    <label>WhatsApp Numarası</label>
+    <input type="tel" id="phoneInput" placeholder="5XXXXXXXXX">
+    
+    <button class="btn btn-create" style="margin-bottom: 5px;" onclick="saveSettings()">Değişiklikleri Kaydet</button>
+    <button class="btn" style="background:#eee; margin:0;" onclick="toggleModal(false)">Kapat</button>
+  </div>
+</div>
+
+<script>
+  let selectedImages = [];
+  const canvas = document.getElementById('collageCanvas');
+  const ctx = canvas.getContext('2d');
+  const CANVAS_SIZE = 1000;
+  const FOOTER_SIZE = 120;
+
+  // Sayfa yüklendiğinde ayarları getir ve PWA Service Worker'ı kaydet
+  window.onload = () => {
+    const savedRegion = localStorage.getItem('app_region');
+    if(savedRegion) {
+      document.getElementById('mainTitle').innerText = savedRegion;
+    }
+
+    // PWA Service Worker Kaydı
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(() => console.log('Service Worker Kayıt Başarılı.'))
+        .catch(err => console.log('Service Worker Kayıt Hatası:', err));
+    }
+  };
+
+  function toggleModal(show) {
+    document.getElementById('settingsModal').style.display = show ? 'flex' : 'none';
+    if(show) {
+      document.getElementById('phoneInput').value = localStorage.getItem('app_wa') || '';
+      document.getElementById('regionInput').value = localStorage.getItem('app_region') || 'DİKMEN BÖLGESİ';
+    }
+  }
+
+  function saveSettings() {
+    const waVal = document.getElementById('phoneInput').value.replace(/\D/g, '');
+    const regionVal = document.getElementById('regionInput').value.trim();
+
+    if(regionVal.length < 2) {
+        alert("Lütfen geçerli bir bölge ismi girin.");
+        return;
+    }
+
+    localStorage.setItem('app_wa', waVal.slice(-10));
+    localStorage.setItem('app_region', regionVal);
+    
+    document.getElementById('mainTitle').innerText = regionVal;
+    
+    alert("Ayarlar başarıyla kaydedildi!");
+    toggleModal(false);
+  }
+
+  function handleFiles(files) {
+    Array.from(files).forEach(file => {
+      if (selectedImages.length >= 6) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        selectedImages.push(e.target.result);
+        renderPreviews();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function renderPreviews() {
+    const grid = document.getElementById('previewGrid');
+    grid.innerHTML = '';
+    selectedImages.forEach((src, idx) => {
+      const div = document.createElement('div');
+      div.className = 'preview-box';
+      div.innerHTML = `<img src="${src}"><button class="del-btn" onclick="removeImg(${idx})">×</button>`;
+      grid.appendChild(div);
+    });
+  }
+
+  window.removeImg = (idx) => {
+    selectedImages.splice(idx, 1);
+    renderPreviews();
+  };
+
+  function drawCover(img, x, y, w, h) {
+    const scale = Math.max(w / img.width, h / img.height);
+    const iw = img.width * scale;
+    const ih = img.height * scale;
+    const ix = x + (w - iw) / 2;
+    const iy = y + (h - ih) / 2;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    ctx.clip();
+    ctx.drawImage(img, ix, iy, iw, ih);
+    ctx.restore();
+  }
+
+  async function generateCollage() {
+    if (selectedImages.length < 2) return alert("En az 2 resim seçmelisin!");
+
+    const imgs = await Promise.all(selectedImages.map(src => {
+      return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.src = src;
+      });
+    }));
+
+    canvas.width = CANVAS_SIZE;
+    canvas.height = CANVAS_SIZE + FOOTER_SIZE;
+
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const n = imgs.length;
+    const S = CANVAS_SIZE;
+
+    if (n === 2) {
+      drawCover(imgs[0], 0, 0, S/2 - 2, S);
+      drawCover(imgs[1], S/2 + 2, 0, S/2, S);
+    } 
+    else if (n === 3) {
+      drawCover(imgs[0], 0, 0, S, S/2 - 2);
+      drawCover(imgs[1], 0, S/2 + 2, S/2 - 2, S/2);
+      drawCover(imgs[2], S/2 + 2, S/2 + 2, S/2, S/2);
+    } 
+    else if (n === 4) {
+      drawCover(imgs[0], 0, 0, S/2 - 2, S/2 - 2);
+      drawCover(imgs[1], S/2 + 2, 0, S/2, S/2 - 2);
+      drawCover(imgs[2], 0, S/2 + 2, S/2 - 2, S/2);
+      drawCover(imgs[3], S/2 + 2, S/2 + 2, S/2, S/2);
+    } 
+    else if (n === 5) {
+      drawCover(imgs[0], 0, 0, S/2 - 2, S/2 - 2);
+      drawCover(imgs[1], S/2 + 2, 0, S/2, S/2 - 2);
+      drawCover(imgs[2], 0, S/2 + 2, S/3 - 2, S/2);
+      drawCover(imgs[3], S/3 + 2, S/2 + 2, S/3 - 2, S/2);
+      drawCover(imgs[4], (2*S/3) + 2, S/2 + 2, S/3, S/2);
+    } 
+    else if (n === 6) {
+      const w = S/3 - 2;
+      const h = S/2 - 2;
+      imgs.forEach((img, i) => {
+        const x = (i % 3) * (S/3);
+        const y = Math.floor(i / 3) * (S/2);
+        drawCover(img, x, y, w, h);
+      });
+    }
+
+    // DİNAMİK ALT YAZI (BÖLGE + ANLIK TARİH VE SAAT)
+    const displayRegion = localStorage.getItem('app_region') || "DİKMEN BÖLGESİ";
+    
+    const simdi = new Date();
+    const gun = String(simdi.getDate()).padStart(2, '0');
+    const ay = String(simdi.getMonth() + 1).padStart(2, '0');
+    const yil = simdi.getFullYear();
+    const saat = String(simdi.getHours()).padStart(2, '0');
+    const dakika = String(simdi.getMinutes()).padStart(2, '0');
+    
+    const tamMetin = `${displayRegion.toUpperCase()} - ${gun}.${ay}.${yil} ${saat}:${dakika}`;
+    
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, S, S, FOOTER_SIZE);
+    ctx.fillStyle = "#1a2e3b";
+    ctx.font = "bold 42px Inter, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(tamMetin, S/2, S + (FOOTER_SIZE/2));
+
+    document.getElementById('resultArea').style.display = 'block';
+    document.getElementById('waBtn').disabled = false;
+    document.getElementById('dlBtn').disabled = false;
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  }
+
+  function downloadCollage() {
+    const link = document.createElement('a');
+    link.download = 'kolaj-' + Date.now() + '.png';
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }
+
+  function shareWhatsApp() {
+    const num = localStorage.getItem('app_wa');
+    if(!num) { alert("Numarayı kaydetmedin!"); return toggleModal(true); }
+
+    canvas.toBlob(blob => {
+      const item = new ClipboardItem({ "image/png": blob });
+      navigator.clipboard.write([item]).then(() => {
+        alert("✅ Kolaj kopyalandı! WhatsApp açılınca yapıştır yap.");
+        window.open(`https://wa.me/90${num}`, '_blank');
+      }).catch(() => {
+        alert("WhatsApp açılıyor. Resmi kopyalayıp gönderebilirsin.");
+        window.open(`https://wa.me/90${num}`, '_blank');
+      });
+    });
+  }
+</script>
+</body>
+</html>
+
